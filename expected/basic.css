@@ -1,0 +1,8 @@
+.element {
+  --element-color: var(--color, red);
+  color: var(--element-color);
+}
+
+.element--modifier {
+  --element-color: var(--local-color, var(--color, red));
+}
