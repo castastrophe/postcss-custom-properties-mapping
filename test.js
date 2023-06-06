@@ -20,13 +20,21 @@ function readFile(filename) {
 	return fs.readFileSync(filename, "utf8");
 }
 
+const globalData = new Map([
+	["--color", "red"],
+	["--padding-block", "10px"],
+	["--padding-block", "5px"],
+	["--border-width", "1px"],
+	["--border-color", "green"],
+]);
+
+const allData = new Map([...globalData, ["--local-color", "var(--color)"]]);
+
 test("create basic output", (t) => {
 	return compare(t, "basic.css", "basic.css", {
-		fallbackSources: [
-			{
-				"--color": "red",
-				"--local-color": "var(--color)",
-			},
-		],
+		globalVariables: globalData,
+		allVariables: allData,
+		denylist: [/^--mod-/],
+		resolutionDepth: 3,
 	});
 });
