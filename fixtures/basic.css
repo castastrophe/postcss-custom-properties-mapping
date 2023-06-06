@@ -1,8 +1,17 @@
 .element {
-  --element-color: var(--color);
+  --element-color: /* random comment */ var(
+      --mod-element-color,
+      var(--color)
+    );
+  --element-padding: var(--padding-block) var(--padding-inline);
+  --element-border: var(--border-width) solid var(--border-color);
+}
+
+.element {
   color: var(--element-color);
 }
 
 .element--modifier {
   --element-color: var(--local-color);
+  --element-color-hover: var(--local-color-hover, #fff);
 }

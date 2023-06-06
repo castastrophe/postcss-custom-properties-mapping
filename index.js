@@ -20,72 +20,105 @@ const valueParser = require('postcss-value-parser');
  * @property {boolean} [customPropertiesOnly=false]
  */
 /** @type import('postcss').PluginCreator<Options> */
-module.exports = (opts) => {
-  const {
-    globalVariables = {},
-    allVariables = {},
-    resolutionDepth = 1,
-    customPropertiesOnly = false,
-  } = opts;
+module.exports = ({
+  globalVariables = new Map(),
+  allVariables = new Map(),
+  allowlist = [],
+  denylist = [],
+  resolutionDepth = 1,
+  customPropertiesOnly = true,
+}) => {
   return {
     postcssPlugin: 'postcss-custom-properties-mapping',
-    prepare() {
-      /**
-       * If the value is static, replace the variable with the value.
-       * Otherwise, change the variable name to the mapped name.
-       * @param {string} value
-       * @param {number} [depth=1]
-       * @returns {string}
-       */
-      function resolveFallback(varString, depth = 1) {
-        console.log(varString);
-        const value = valueParser(varString);
-        if (!value || !value.nodes || value.nodes.length < 1) return varString;
+    /** @type import('postcss').Processors.Declaration */
+    async Declaration(decl, {}) {
+      if (!/(^|[^\w-])var\([\W\w]+\)/.test(decl.value)) return;
+
+      // If we're only resolving fallbacks for custom properties, skip if this isn't one
+      if (customPropertiesOnly && !decl.prop.startsWith('--')) return;
+
+      // If the value is static, replace the variable with the value.
+      // Otherwise, change the variable name to the mapped name.
+      const resolveFallback = (valueStr, depth = 0) => {
+        if (!valueStr) return false;
+
+        const value = valueParser(valueStr);
+        if (!value || !value.nodes || value.nodes.length < 1) return false;
 
         // Search for a fallback value in the variable declaration
-        /** @type {string} */
-        let token, fallbackValue;
-
-        console.log(token, { depth });
-
+        // Bubble set to true so it will traverse from inside -> out
         value.walk((node, idx) => {
-          if (node.type !== 'function' && node.value !== 'var') return;
-          if (node.nodes.length < 1) return;
+          if (!node && node.type !== 'word' && node.type !== 'function' ) return;
 
-          console.log(token, { idx, depth });
-          node.nodes.forEach((segment) => {
-            if (segment.type !== 'word' && segment.type !== 'function') return;
+          if (node.type === 'function' && node.value === 'var') {
+            if (depth >= resolutionDepth) return;
 
-            const { type, value } = segment;
-            // The first value is the key
-            if (type === 'word' && value.startsWith('--')) {
-              // Check global & then all variables for a fallback value
-              if (globalVariables && typeof globalVariables[value] !== 'undefined') {
-                fallbackValue = globalVariables[value];
-              } else if (allVariables && typeof allVariables[value] !== 'undefined') {
-                fallbackValue = allVariables[value];
+            [...node.nodes].reverse().forEach((segment) => {
+              // If this is not a word or function, we're not interested
+              if (segment.type !== 'word' && segment.type !== 'function') return;
+
+              // If this is a function, recurse
+              if (segment.type === 'function') {
+                return resolveFallback(valueParser.stringify(segment), ++depth);
               }
-            } else if (type === 'function' && value === 'var') {
-              const strValue = valueParser.stringify(segment);
-              fallbackValue = depth > 0 ? resolveFallback(strValue, depth - 1) : strValue;
-            }
-          });
+            });
+          }
+
+          if (node.type !== 'word') return;
+
+          // Check the allowlist
+          if (allowlist.length > 0 && !allowlist.some((pattern) => pattern.test(node.value))) return;
+
+          // Check the denylist
+          if (denylist.length > 0 && denylist.some((pattern) => pattern.test(node.value))) return;
+
+          let fallback;
+
+          // Check global & then all variables for a fallback value
+          if (globalVariables.size > 0 && globalVariables.has(node.value)) {
+            fallback = globalVariables.get(node.value);
+          }
+
+          if (allVariables.size > 0 && allVariables.has(node.value)) {
+            fallback = allVariables.get(node.value);
+          }
+
+          // If there's no fallback, we're done
+          if (!fallback) return;
+
+          const newItems = [{
+            type: 'div',
+            after: ' ',
+            sourceIndex: node.sourceIndex,
+            value: ','
+          }, {
+            type: 'word',
+            sourceIndex: node.sourceIndex,
+            value: fallback
+          }];
+
+          if (!node.nodes || node.nodes.length === 0) {
+            const parent = value.nodes[idx];
+            if (!parent || !parent.nodes || parent.nodes === 0) return;
+
+            const strValue = valueParser.stringify(node) + ', ' + fallback;
+            // update the node value with the fallback string
+            node.value = valueParser(strValue);
+          } else node.nodes.push(...newItems);
         });
 
-        return fallbackValue ? `var(${token}, ${fallbackValue})` : token ? `var(${token})` : varString;
-      }
-
-      return {
-        /** @type import('postcss').Processors.Declaration */
-        async Declaration(decl, {}) {
-          if (!/(^|[^\w-])var\([\W\w]+\)/.test(decl.value)) return;
-
-          if (customPropertiesOnly && !decl.prop.startsWith('--')) return;
-
-          decl.value = resolveFallback(decl.value, resolutionDepth);
-        }
+        return value ? valueParser.stringify(value) : false;
       };
-    }
+
+      // Kick off the recursive resolution
+      const getValue = resolveFallback(decl.value);
+      console.log({getValue});
+
+      // @todo does this need to be removed? maybe it's an empty hook?
+      if (typeof getValue === 'undefined' || getValue === false) return;
+
+      decl.assign({ value: getValue });
+    },
   };
 };
 
