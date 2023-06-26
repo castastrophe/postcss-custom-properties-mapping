@@ -1,5 +1,5 @@
-/*
-Copyright 2023 Adobe. All rights reserved.
+/*!
+Copyright 2023. All rights reserved.
 This file is licensed to you under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License. You may obtain a copy
 of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -10,83 +10,136 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const valueParser = require('postcss-value-parser');
+/** @type import("postcss-value-parser").ValueParser */
+const valueParser = require("postcss-value-parser");
 
 /**
  * @typedef Options
  * @property {{ [string]: string }} [globalVariables]
  * @property {{ [string]: string }} [allVariables]
- * @property {number} [resolutionDepth=1]
  * @property {boolean} [customPropertiesOnly=false]
  */
 /** @type import('postcss').PluginCreator<Options> */
-module.exports = (opts) => {
-  const {
-    globalVariables = {},
-    allVariables = {},
-    resolutionDepth = 1,
-    customPropertiesOnly = false,
-  } = opts;
-  return {
-    postcssPlugin: 'postcss-custom-properties-mapping',
-    prepare() {
-      /**
-       * If the value is static, replace the variable with the value.
-       * Otherwise, change the variable name to the mapped name.
-       * @param {string} value
-       * @param {number} [depth=1]
-       * @returns {string}
-       */
-      function resolveFallback(varString, depth = 1) {
-        console.log(varString);
-        const value = valueParser(varString);
-        if (!value || !value.nodes || value.nodes.length < 1) return varString;
+module.exports = ({
+	globalVariables = {},
+	allVariables = {},
+	customPropertiesOnly = false,
+} = {}) => {
+	// A cache of recently found values for faster lookups
+	const valuesCache = new Map();
 
-        // Search for a fallback value in the variable declaration
-        /** @type {string} */
-        let token, fallbackValue;
+	return {
+		postcssPlugin: "postcss-custom-properties-mapping",
+		/** @type import('postcss').Processors.Declaration */
+		Declaration(decl, { result }) {
+			// Check if this declaration is a custom property
+			const isProp = decl.prop.startsWith("--");
+			// Check if this declaration uses a custom property
+			const usesProp = decl.value.match(/var\(.*?\)/g);
 
-        console.log(token, { depth });
+			// Add this declaration to the cache if it's a custom property
+			// in case a descendant declaration needs it
+			if (isProp) valuesCache.set(decl.prop, decl.value);
 
-        value.walk((node, idx) => {
-          if (node.type !== 'function' && node.value !== 'var') return;
-          if (node.nodes.length < 1) return;
+			// If this neither is a custom property nor uses a custom property, stop processing
+			if ((customPropertiesOnly && !isProp) || !usesProp) return;
 
-          console.log(token, { idx, depth });
-          node.nodes.forEach((segment) => {
-            if (segment.type !== 'word' && segment.type !== 'function') return;
+			/**
+			 *
+			 * @param {import("postcss-value-parser").Node} valueNode
+			 * @param {number} idx
+			 * @returns
+			 */
+			function parseValueForProperties({ type, value, nodes }, idx = 0) {
+				// We're only interested here in var functions
+				if (type === "function" && value === "var") {
+					// Why would a var not have nodes? 🤷‍♀️
+					if (!nodes || nodes.length === 0) {
+						decl.warn(result, `No nodes found in var function: ${value}`, {
+							node: decl,
+						});
+						return;
+					}
 
-            const { type, value } = segment;
-            // The first value is the key
-            if (type === 'word' && value.startsWith('--')) {
-              // Check global & then all variables for a fallback value
-              if (globalVariables && typeof globalVariables[value] !== 'undefined') {
-                fallbackValue = globalVariables[value];
-              } else if (allVariables && typeof allVariables[value] !== 'undefined') {
-                fallbackValue = allVariables[value];
-              }
-            } else if (type === 'function' && value === 'var') {
-              const strValue = valueParser.stringify(segment);
-              fallbackValue = depth > 0 ? resolveFallback(strValue, depth - 1) : strValue;
-            }
-          });
-        });
+					// Filter out any non-word types and reverse them so we're starting with the last
+					const onlyWords = nodes
+						.reverse()
+						.filter((n) => n.type === "word" || n.type === "function");
 
-        return fallbackValue ? `var(${token}, ${fallbackValue})` : token ? `var(${token})` : varString;
-      }
+					// Why would a var function not have a word? 🤷‍♀️
+					// @todo needs test added
+					if (onlyWords.length === 0) {
+						decl.warn(result, `No words found in var function: ${value}`, {
+							node: decl,
+						});
+						return;
+					}
 
-      return {
-        /** @type import('postcss').Processors.Declaration */
-        async Declaration(decl, {}) {
-          if (!/(^|[^\w-])var\([\W\w]+\)/.test(decl.value)) return;
+					// Recursively call this function to parse the next var function if necessary
+					return parseValueForProperties(onlyWords?.[0], idx);
+				}
 
-          if (customPropertiesOnly && !decl.prop.startsWith('--')) return;
+				// If the value is not a word, we're not interested anymore
+				// i.e., commas, etc.
+				if (type !== "word" && type !== "function") return;
 
-          decl.value = resolveFallback(decl.value, resolutionDepth);
-        }
-      };
-    }
-  };
+				// Check the cache first to see if we've already found this value
+				if (valuesCache.has(value)) {
+					return valuesCache.get(value);
+				}
+
+				// Check global & then all variables for a fallback value
+				if (globalVariables && typeof globalVariables[value] !== "undefined") {
+					valuesCache.set(value, globalVariables[value]);
+					return globalVariables[value];
+				}
+
+				if (allVariables && typeof allVariables[value] !== "undefined") {
+					valuesCache.set(value, allVariables[value]);
+					return allVariables[value];
+				}
+
+				// If we've made it this far, we haven't found a fallback value
+				decl.warn(result, `No fallback value found for ${value}`, {
+					node: decl,
+				});
+
+				return;
+			}
+
+			console.log("\t-------");
+			console.log(decl.prop, decl.value);
+
+			// Leverage value parser to walk the declaration value
+			/** @type import('postcss-value-parser').ValueParser */
+			valueParser(decl.value).walk((node, idx) => {
+				if (node.value === " ") return;
+				console.log({ value: node.value, idx });
+				const fallbackValue = parseValueForProperties(node, idx);
+
+				if (!fallbackValue) return;
+
+				if (node.nodes && node.nodes.length > 0) {
+					console.log({ nodes: node.nodes });
+					node.nodes.push(
+						{ type: "div", value: ",", after: " " },
+						{ type: "word", value: fallbackValue }
+					);
+					// Update the declaration value
+					console.log("Update: ", valueParser.stringify(node));
+					decl.assign({ value: valueParser.stringify(node) });
+
+					console.log("exit\n\n");
+					// Stop walking the tree if we've updated the value already
+					return false;
+				} else {
+					console.log("No nodes?", { node });
+				}
+
+				return;
+			});
+		},
+	};
 };
 
 module.exports.postcss = true;
