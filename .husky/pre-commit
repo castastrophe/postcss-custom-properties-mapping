@@ -1,0 +1,6 @@
+yarn lint-staged --allow-empty
+
+# # If CI files are added/edited and the circleci cli is available, validate the config
+if [[ ! -z "$(command -v gh)" && ! -z "$(gh extension list | grep actionlint)" ]]; then
+  gh actionlint
+fi
