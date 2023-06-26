@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "postcss-custom-properties-mapping",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "license": "Apache-2.0",
   "author": "Cassondra Roberts <castastrophe@users.noreply.github.com> (https://allons-y.llc)",
   "contributors": [
@@ -9,61 +9,43 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/adobe/spectrum-css.git"
+    "url": "https://github.com/castastrophe/postcss-custom-properties-mapping.git"
   },
   "bugs": {
-    "url": "https://github.com/adobe/spectrum-css/issues"
+    "url": "https://github.com/castastrophe/postcss-custom-properties-mapping/issues"
   },
   "main": "index.js",
   "files": [
     "index.js"
   ],
-  "engines": {
-    "node": ">=14 <=18"
-  },
   "scripts": {
-    "prepare": "husky install",
-    "test": "ava",
     "coverage": "c8 yarn test",
-    "semantic-release": "semantic-release"
+    "prepare": "sh ./scripts/prepare.sh",
+    "release": "semantic-release",
+    "test": "ava"
   },
-  "funding": [
-    {
-      "type": "github",
-      "url": " https://github.com/sponsors/castastrophe"
-    }
-  ],
   "dependencies": {
-    "postcss-value-parser": "^4.2.0"
+    "postcss": "^8.4.23",
+    "postcss-values-parser": "^6.0.2"
   },
   "peerDependencies": {
-    "postcss": "^8.0.0"
+    "postcss": ">=8"
   },
   "devDependencies": {
-    "@commitlint/cli": "^17.6.5",
-    "@commitlint/config-conventional": "^17.4.4",
-    "@semantic-release/changelog": "^6.0.3",
-    "@semantic-release/commit-analyzer": "^9.0.2",
+    "@commitlint/cli": "^17.6.6",
+    "@commitlint/config-conventional": "^17.6.6",
+    "@semantic-release/commit-analyzer": "^10.0.1",
     "@semantic-release/git": "^10.0.1",
-    "@semantic-release/github": "^8.1.0",
-    "@semantic-release/npm": "^10.0.2",
-    "@semantic-release/release-notes-generator": "^11.0.2",
+    "@semantic-release/github": "^9.0.3",
+    "@semantic-release/npm": "^10.0.4",
+    "@semantic-release/release-notes-generator": "^11.0.3",
     "ava": "^5.2.0",
     "c8": "^7.13.0",
     "husky": "^8.0.3",
     "lint-staged": "^13.2.0",
-    "postcss": "^8.4.23",
     "prettier": "^2.8.7",
     "prettier-package-json": "^2.8.0",
-    "semantic-release": "^21.0.1"
-  },
-  "lint-staged": {
-    "*.js": [
-      "prettier --write"
-    ],
-    "package.json": [
-      "prettier-package-json --write"
-    ]
+    "semantic-release": "^21.0.5"
   },
   "keywords": [
     "css",
@@ -73,8 +55,25 @@
     "postcss",
     "properties"
   ],
+  "engines": {
+    "node": ">=14 <=18"
+  },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
+  },
+  "funding": [
+    {
+      "type": "github",
+      "url": " https://github.com/sponsors/castastrophe"
+    }
+  ],
+  "lint-staged": {
+    "*.{js,md}": [
+      "prettier --write"
+    ],
+    "package.json": [
+      "prettier-package-json --write"
+    ]
   }
 }
