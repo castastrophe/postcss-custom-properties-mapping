@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "postcss-custom-properties-mapping",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "license": "Apache-2.0",
   "author": "Cassondra Roberts <castastrophe@users.noreply.github.com> (https://allons-y.llc)",
   "contributors": [
@@ -9,35 +9,28 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/adobe/spectrum-css.git"
+    "url": "https://github.com/castastrophe/postcss-custom-properties-mapping.git"
   },
   "bugs": {
-    "url": "https://github.com/adobe/spectrum-css/issues"
+    "url": "https://github.com/castastrophe/postcss-custom-properties-mapping/issues"
   },
   "main": "index.js",
   "files": [
     "index.js"
   ],
-  "engines": {
-    "node": ">=20 <=23"
-  },
   "scripts": {
-    "postinstall": "husky || true",
-    "test": "ava",
     "coverage": "c8 yarn test",
-    "semantic-release": "semantic-release"
+    "postinstall": "husky || true",
+    "prepare": "sh ./scripts/prepare.sh",
+    "release": "semantic-release",
+    "test": "ava"
   },
-  "funding": [
-    {
-      "type": "github",
-      "url": " https://github.com/sponsors/castastrophe"
-    }
-  ],
   "dependencies": {
-    "postcss-value-parser": "^4.2.0"
+    "postcss": "^8.5.6",
+    "postcss-values-parser": "^6.0.2"
   },
   "peerDependencies": {
-    "postcss": "^8.0.0"
+    "postcss": ">=8"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
@@ -52,18 +45,9 @@
     "c8": "^10.1.3",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.2",
-    "postcss": "^8.5.6",
     "prettier": "^3.6.2",
     "prettier-package-json": "^2.8.0",
     "semantic-release": "^24.2.7"
-  },
-  "lint-staged": {
-    "*.js": [
-      "prettier --write"
-    ],
-    "package.json": [
-      "prettier-package-json --write"
-    ]
   },
   "keywords": [
     "css",
@@ -73,9 +57,26 @@
     "postcss",
     "properties"
   ],
+  "engines": {
+    "node": ">=20 <=23"
+  },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
+  },
+  "funding": [
+    {
+      "type": "github",
+      "url": " https://github.com/sponsors/castastrophe"
+    }
+  ],
+  "lint-staged": {
+    "*.{js,md}": [
+      "prettier --write"
+    ],
+    "package.json": [
+      "prettier-package-json --write"
+    ]
   },
   "packageManager": "yarn@4.9.2"
 }
