@@ -42,10 +42,19 @@
     "ava": "^5.2.0",
     "c8": "^7.13.0",
     "husky": "^8.0.3",
-    "lint-staged": "^13.2.0",
+    "lint-staged": "^13.2.3",
+    "postcss": "^8.4.25",
     "prettier": "^2.8.7",
     "prettier-package-json": "^2.8.0",
-    "semantic-release": "^21.0.5"
+    "semantic-release": "^21.0.7"
+  },
+  "lint-staged": {
+    "*.js": [
+      "prettier --write"
+    ],
+    "package.json": [
+      "prettier-package-json --write"
+    ]
   },
   "keywords": [
     "css",
