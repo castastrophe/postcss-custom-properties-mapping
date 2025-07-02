@@ -1,35 +1,32 @@
-const fs = require('fs');
-const test = require('ava');
-const postcss = require('postcss');
-const plugin = require('./index.js');
+const fs = require("fs");
+const test = require("ava");
+const postcss = require("postcss");
+const plugin = require("./index.js");
 
-function compare(t, fixtureFilePath, expectedFilePath, options = {}){
-  return postcss([ plugin(options) ])
-    .process(
-      readFile(`./fixtures/${fixtureFilePath}`),
-      { from: fixtureFilePath }
-    )
-    .then(result => {
-      const actual = result.css;
-      const expected = readFile(`./expected/${expectedFilePath}`);
-      t.is(actual, expected);
-      t.is(result.warnings().length, 0);
-    });
+function compare(t, fixtureFilePath, expectedFilePath, options = {}) {
+	return postcss([plugin(options)])
+		.process(readFile(`./fixtures/${fixtureFilePath}`), {
+			from: fixtureFilePath,
+		})
+		.then((result) => {
+			const actual = result.css;
+			const expected = readFile(`./expected/${expectedFilePath}`);
+			t.is(actual, expected);
+			t.is(result.warnings().length, 0);
+		});
 }
 
 function readFile(filename) {
-  return fs.readFileSync(filename, 'utf8');
+	return fs.readFileSync(filename, "utf8");
 }
 
-test('create basic output', t => {
-  return compare(t, 'basic.css', 'basic.css', {
-    globalVariables: {
-      '--color': 'red',
-    },
-    allVariables: {
-      '--color': 'red',
-      '--local-color': 'var(--color)',
-    },
-    resolutionDepth: 3,
-  });
+test("create basic output", (t) => {
+	return compare(t, "basic.css", "basic.css", {
+		fallbackSources: [
+			{
+				"--color": "red",
+				"--local-color": "var(--color)",
+			},
+		],
+	});
 });

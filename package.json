@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "postcss-custom-properties-mapping",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "license": "Apache-2.0",
   "author": "Cassondra Roberts <castastrophe@users.noreply.github.com> (https://allons-y.llc)",
   "contributors": [
@@ -9,35 +9,27 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/adobe/spectrum-css.git"
+    "url": "https://github.com/castastrophe/postcss-custom-properties-mapping.git"
   },
   "bugs": {
-    "url": "https://github.com/adobe/spectrum-css/issues"
+    "url": "https://github.com/castastrophe/postcss-custom-properties-mapping/issues"
   },
   "main": "index.js",
   "files": [
     "index.js"
   ],
-  "engines": {
-    "node": ">=14 <=18"
-  },
   "scripts": {
-    "prepare": "husky install",
-    "test": "ava",
     "coverage": "c8 yarn test",
-    "semantic-release": "semantic-release"
+    "prepare": "sh ./scripts/prepare.sh",
+    "release": "semantic-release",
+    "test": "ava"
   },
-  "funding": [
-    {
-      "type": "github",
-      "url": " https://github.com/sponsors/castastrophe"
-    }
-  ],
   "dependencies": {
-    "postcss-value-parser": "^4.2.0"
+    "postcss": "^8.4.23",
+    "postcss-values-parser": "^6.0.2"
   },
   "peerDependencies": {
-    "postcss": "^8.0.0"
+    "postcss": ">=8"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
@@ -73,8 +65,25 @@
     "postcss",
     "properties"
   ],
+  "engines": {
+    "node": ">=14 <=18"
+  },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
+  },
+  "funding": [
+    {
+      "type": "github",
+      "url": " https://github.com/sponsors/castastrophe"
+    }
+  ],
+  "lint-staged": {
+    "*.{js,md}": [
+      "prettier --write"
+    ],
+    "package.json": [
+      "prettier-package-json --write"
+    ]
   }
 }
