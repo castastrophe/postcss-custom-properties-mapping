@@ -30,4 +30,4 @@ jobs:
         shell: bash
         run: yarn install --immutable
       - name: Semantic release
-        uses: cycjimmy/semantic-release-action@v4
+        uses: cycjimmy/semantic-release-action@v5
