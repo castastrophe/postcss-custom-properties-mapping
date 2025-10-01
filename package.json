@@ -47,7 +47,7 @@
     "lint-staged": "^16.1.5",
     "prettier": "^3.6.2",
     "prettier-package-json": "^2.8.0",
-    "semantic-release": "^24.2.7"
+    "semantic-release": "^24.2.9"
   },
   "keywords": [
     "css",
