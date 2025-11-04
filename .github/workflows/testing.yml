@@ -8,6 +8,13 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        node-version:
+          - 22
+          - 24
+      fail-fast: true
+
     steps:
       - name: Check out code
         uses: actions/checkout@v6
@@ -19,7 +26,18 @@ jobs:
         uses: actions/setup-node@v6
         with:
           cache: yarn
-          node-version: 24
+          node-version: ${{ matrix.node-version }}
+
+      ## --- YARN CACHE --- ##
+      - name: Check for cached dependencies
+        continue-on-error: true
+        id: cache-dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            .cache/yarn
+            node_modules
+          key: ubuntu-latest-node${{ matrix.node-version }}-${{ hashFiles('yarn.lock') }}
 
       - name: Install dependencies
         run: yarn install --immutable
@@ -31,6 +49,7 @@ jobs:
     permissions:
       pull-requests: write
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v6
 
@@ -42,26 +61,42 @@ jobs:
           cache: yarn
           node-version: 24
 
+      ## --- YARN CACHE --- ##
+      - name: Check for cached dependencies
+        continue-on-error: true
+        id: cache-dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            .cache/yarn
+            node_modules
+          key: ubuntu-latest-node24-${{ hashFiles('yarn.lock') }}
+
       - name: Install dependencies
         run: yarn install --immutable
 
       - name: Run coverage report
         run: yarn coverage
+
       - uses: actions/upload-artifact@v5
         with:
           name: coverage-data-${{ github.run_id }}
           path: |
             coverage/**/*.json
+
       - name: Coverage summary
         uses: irongut/CodeCoverageSummary@v1.3.0
         with:
           filename: coverage/cobertura-coverage.xml
           format: "markdown"
           output: "both"
+
       - name: Add coverage PR comment
         uses: marocchino/sticky-pull-request-comment@v2.9.4
         with:
           recreate: true
           path: code-coverage-results.md
+
       - name: Write to job summary
+        if: always()
         run: cat code-coverage-results.md >> $GITHUB_STEP_SUMMARY
