@@ -68,6 +68,10 @@
     {
       "type": "github",
       "url": " https://github.com/sponsors/castastrophe"
+    },
+    {
+      "type": "buymeacoffee",
+      "url": "https://www.buymeacoffee.com/castastrophe"
     }
   ],
   "lint-staged": {
@@ -78,5 +82,5 @@
       "prettier-package-json --write"
     ]
   },
-  "packageManager": "yarn@4.9.2"
+  "packageManager": "yarn@4.10.3"
 }
