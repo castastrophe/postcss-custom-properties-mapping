@@ -17,31 +17,47 @@ postcss -u postcss-custom-properties-mapping -o dist/index.css src/index.css
 In the postcss config:
 
 ```js
-require("postcss-custom-properties-mapping")({});
+require("postcss-custom-properties-mapping")({
+  globalVariables = {},
+  allVariables = {},
+  resolutionDepth = 1,
+  customPropertiesOnly = false,
+})
 ```
 
 ## Options
 
 ### `globalVariables`
 
-Type: `object`
+Type: `Object`<br>
+Default: `{}`
 
-An object of available global variables; key is the variable name, value is the variable value.
+An optional object of global variables that will be used in the resolution process.
 
 ### `allVariables`
 
-Type: `object`
+Type: `Object`<br>
+Default: `{}`
 
-An object of all available variables in the system (allows for a wider search); key is the variable name, value is the variable value.
+An optional object of all variables that will be used in the resolution process.
+
+### `resolutionDepth`
+
+Type: `Number`<br>
+Default: `1`
+
+The maximum depth of the resolution process; how many iterations will be performed before returning the result.
 
 ### `customPropertiesOnly`
 
-Type: `boolean`<br>
+Type: `Boolean`<br>
 Default: `false`
 
-If set to `true`, only custom properties mapped to variable functions will be resolved. If set to `false`, all variable functions will be resolved, whether assigned to a CSS property or a custom property.
+If `true`, only custom properties will be returned as fallback values. If `false`, all types of fallback values will be allowed.
 
 ## Usage
+
+Assuming you have some variables defined and rule(s) that use them:
 
 ```css
 .element {
@@ -54,7 +70,20 @@ If set to `true`, only custom properties mapped to variable functions will be re
 }
 ```
 
-Result:
+And the following set of inputs:
+
+```js
+globalVariables: {
+    '--color': 'red',
+},
+allVariables: {
+  '--color': 'red',
+  '--local-color': 'var(--color)',
+},
+resolutionDepth: 3,
+```
+
+The available fallback values will be resolved:
 
 ```css
 .element {
