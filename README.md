@@ -1,6 +1,6 @@
 # postcss-custom-properties-mapping
 
->
+> This plugin allows pre-compilation manipulation of custom properties to dynamically connect them to a dataset.
 
 ## Installation
 
