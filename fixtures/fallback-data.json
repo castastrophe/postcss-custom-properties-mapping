@@ -1,0 +1,4 @@
+{
+    "color": {"value": "red"},
+    "local-color": {"value": "var(--color)"}
+}
