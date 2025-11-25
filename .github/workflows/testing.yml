@@ -8,13 +8,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version:
-          - 22
-          - 24
-      fail-fast: true
-
     steps:
       - name: Check out code
         uses: actions/checkout@v6
@@ -26,7 +19,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           cache: yarn
-          node-version: ${{ matrix.node-version }}
+          node-version: 24
 
       ## --- YARN CACHE --- ##
       - name: Check for cached dependencies
@@ -37,7 +30,7 @@ jobs:
           path: |
             .cache/yarn
             node_modules
-          key: ubuntu-latest-node${{ matrix.node-version }}-${{ hashFiles('yarn.lock') }}
+          key: ubuntu-latest-node24-${{ hashFiles('yarn.lock') }}
 
       - name: Install dependencies
         run: yarn install --immutable

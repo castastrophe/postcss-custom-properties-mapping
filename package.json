@@ -58,7 +58,7 @@
     "properties"
   ],
   "engines": {
-    "node": ">=22 <=24"
+    "node": ">=24"
   },
   "publishConfig": {
     "access": "public",
