@@ -3,9 +3,6 @@
   "version": "2.0.0",
   "license": "Apache-2.0",
   "author": "Cassondra Roberts <castastrophe@users.noreply.github.com> (https://allons-y.llc)",
-  "contributors": [
-    "Larry Davis <lazdnet@gmail.com>"
-  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/castastrophe/postcss-custom-properties-mapping.git"
@@ -13,6 +10,7 @@
   "bugs": {
     "url": "https://github.com/castastrophe/postcss-custom-properties-mapping/issues"
   },
+  "type": "module",
   "main": "index.js",
   "files": [
     "index.js"
@@ -26,27 +24,27 @@
   },
   "dependencies": {
     "postcss": "^8.5.6",
-    "postcss-values-parser": "^7.0.0"
+    "postcss-values-parser": "^6.0.2"
   },
   "peerDependencies": {
     "postcss": ">=8"
   },
   "devDependencies": {
-    "@commitlint/cli": "^20.1.0",
-    "@commitlint/config-conventional": "^20.0.0",
+    "@commitlint/cli": "^20.3.0",
+    "@commitlint/config-conventional": "^20.3.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/git": "^10.0.1",
-    "@semantic-release/github": "^12.0.1",
-    "@semantic-release/npm": "^13.1.1",
+    "@semantic-release/github": "^12.0.2",
+    "@semantic-release/npm": "^13.1.3",
     "@semantic-release/release-notes-generator": "^14.1.0",
     "ava": "^6.4.1",
     "c8": "^10.1.3",
     "husky": "^9.1.7",
-    "lint-staged": "^16.2.6",
-    "prettier": "^3.6.2",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.7.4",
     "prettier-package-json": "^2.8.0",
-    "semantic-release": "^25.0.1"
+    "semantic-release": "^25.0.2"
   },
   "keywords": [
     "css",

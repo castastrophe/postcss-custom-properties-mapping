@@ -1,23 +1,38 @@
-const fs = require("fs");
-const test = require("ava");
-const postcss = require("postcss");
-const plugin = require("./index.js");
+import { readFile } from "node:fs/promises";
+import test from "ava";
+import postcss from "postcss";
 
-function compare(t, fixtureFilePath, expectedFilePath, options = {}) {
+import plugin from "./index.js";
+
+/**
+ * Compare the fixture with the expected output
+ * @param {import("ava").TestFunction} t
+ * @param {string} fixtureFilePath
+ * @param {string} expectedFilePath
+ * @param {import("./index.js").Options} options
+ * @returns {Promise<void>}
+ */
+async function compare(t, fixtureFilePath, expectedFilePath, options = {}) {
+	const fixture = await readFile(`./fixtures/${fixtureFilePath}`, {
+		encoding: "utf8",
+	});
+	const expected = await readFile(`./expected/${expectedFilePath}`, {
+		encoding: "utf8",
+	});
+
+	// Process the fixture with the plugin
 	return postcss([plugin(options)])
-		.process(readFile(`./fixtures/${fixtureFilePath}`), {
-			from: fixtureFilePath,
-		})
+		.process(fixture, { from: fixtureFilePath })
 		.then((result) => {
-			const actual = result.css;
-			const expected = readFile(`./expected/${expectedFilePath}`);
-			t.is(actual, expected);
-			t.is(result.warnings().length, 0);
-		});
-}
+			// Compare the result with the expected output
+			t.is(result.css, expected);
 
-function readFile(filename) {
-	return fs.readFileSync(filename, "utf8");
+			// Ensure no warnings were thrown
+			t.is(result.warnings().length, 0);
+		})
+		.catch((error) => {
+			t.fail(error.message);
+		});
 }
 
 const globalData = new Map([
@@ -30,7 +45,7 @@ const globalData = new Map([
 
 const allData = new Map([...globalData, ["--local-color", "var(--color)"]]);
 
-test("create basic output", (t) => {
+test("create basic output", async (t) => {
 	return compare(t, "basic.css", "basic.css", {
 		globalVariables: globalData,
 		allVariables: allData,
