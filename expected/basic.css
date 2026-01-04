@@ -1,10 +1,14 @@
 .element {
-	--element-color: var(--color, red);
-	color: var(--element-color);
+  --element-color: var(--mod-element-color, var(--color, red));
+  --element-padding: var(--padding-block, 10px) var(--padding-inline, 5px);
+  --element-border: var(--border-width, 1px) solid var(--border-color, green);
+}
+
+.element {
+  color: var(--element-color);
 }
 
 .element--modifier {
-	--element-color: var(--local-color, var(--color, red));
-	--color-stack: var(--local-color, var(--color, red)) var(--color, red);
-	--color-stack2: var(--local-color, var(--element-color)) var(--color, red);
+  --element-color: var(--local-color, var(--color, red));
+  --element-color-hover: var(--local-color-hover, #fff);
 }

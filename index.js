@@ -10,11 +10,8 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const fs = require("fs");
-const postcss = require("postcss");
-
 /** @type import("postcss-values-parser").ValueParser */
-const { parse } = require("postcss-values-parser");
+import { parse } from "postcss-values-parser";
 
 /**
  * @typedef Options
@@ -22,142 +19,114 @@ const { parse } = require("postcss-values-parser");
  * @property {boolean} [customPropertiesOnly=false] Whether to only process custom properties
  */
 /** @type import('postcss').PluginCreator<Options> */
-module.exports = ({
-	fallbackSources = [],
-	customPropertiesOnly = false,
+export default ({
+	globalVariables = new Map(),
+	allVariables = new Map(),
+	allowlist = [],
+	denylist = [],
 	resolutionDepth = 1,
-} = {}) => {
+	customPropertiesOnly = true,
+}) => {
+	// If the value is static, replace the variable with the value.
+	// Otherwise, change the variable name to the mapped name.
+	const lookupFallback = (key, depth = 0, fallback = undefined) => {
+		console.log(
+			"Lookup fallback for",
+			key,
+			fallback ? "with fallback" + fallback : "",
+		);
+		console.log("Depth is: ", depth);
+
+		// Check the allowlist
+		if (
+			allowlist.length > 0 &&
+			!allowlist.some((pattern) => pattern.test(key))
+		) {
+			console.log("Key " + key + " is not in the allowlist");
+			return;
+		}
+
+		// Check the denylist
+		if (denylist.length > 0 && denylist.some((pattern) => pattern.test(key))) {
+			console.log("Key " + key + " is in the denylist");
+			return;
+		}
+
+		if (fallback) {
+			console.log("Fallback is already set to: ", fallback);
+			return fallback;
+		}
+
+		// Check global & then all variables for a fallback value
+		if (globalVariables.size > 0 && globalVariables.has(key)) {
+			fallback = globalVariables.get(key);
+		}
+
+		if (allVariables.size > 0 && allVariables.has(key) && !fallback) {
+			fallback = allVariables.get(key);
+		}
+
+		// If there's no fallback, we're done
+		if (!fallback) return;
+
+		console.log("Fallback is: ", fallback);
+
+		const parsedFallback = parse(fallback);
+		let isNestedVar = false;
+		parsedFallback.walkFuncs((func) => {
+			if (func.isVar) isNestedVar = true;
+			return false;
+		});
+
+		if (isNestedVar) {
+			console.log("Fallback is a nested var");
+
+			// If fallback points to another variable, check if we need to resolve it
+			if (depth < resolutionDepth - 1) {
+				// Start by parsing the value as a CSS value
+			}
+		}
+
+		return fallback;
+	};
+
 	return {
 		postcssPlugin: "postcss-custom-properties-mapping",
-		prepare(result) {
-			// A cache of recently found values for faster lookups
-			const rootCache = new Map();
-			const ruleCache = new Map();
-			const sourcesCache = new Map();
+		/** @type import('postcss').Processors.Declaration */
+		async Declaration(decl, {}) {
+			decl.cleanRaws();
 
-			// Read in the fallback sources into a shared map
-			fallbackSources = Array.isArray(fallbackSources)
-				? fallbackSources
-				: [fallbackSources];
-			fallbackSources.forEach((source) => {
-				if (typeof source === "string") {
-					// If the source is a string, assume it's a file path
-					// and try to load it
-					const reference = fs.readFileSync(source, "utf8");
-					if (!reference) {
-						result.warn(result, `Unable to load fallback source ${source}`, {});
-						return;
-					}
+			// If we're only resolving fallbacks for custom properties, skip if this isn't one
+			if (customPropertiesOnly && !decl.prop.startsWith("--")) return;
 
-					postcss.parse(reference).walkDecls((decl) => {
-						sourcesCache.set(decl.prop, decl.value);
-					});
-				} else if (typeof source === "object") {
-					Object.keys(source).forEach((key) => {
-						if (!key.startsWith("--")) return;
-						sourcesCache.set(key, source[key]);
-					});
-				}
-			});
+			let updatedValue = decl.value?.replace(/[ \t\n\s]+/g, " ")?.trim() ?? "";
 
-			function getFallback(lookup) {
-				// Check the caches first to see if we've already found this value
-				if (ruleCache.has(lookup)) {
-					// If we find it in the ruleCache, this definition exists in the same rule
-					// and doesn't need to use a fallback
-					return;
+			// Parse the value string looking for var() functions,
+			// identify the -- prefixed variable key and check if it already
+			// has a fallback value by looking for something after a comma
+			// even empty spaces after a comma are a valid fallback value
+			// values can have multiple var() functions and var() functions can be nested
+			function parseVar(value) {
+				const key = value.match(/var\(([^,|\)]+)/)?.[1];
+				let fallback = value.match(/,(.*?)(?=\))/)?.[1]?.trim();
+				if (!fallback) {
+					fallback = lookupFallback(key);
+				} else if (fallback.includes("var(")) {
+					fallback = parseVar(fallback + ")");
+				} else {
+					console.log("Fallback is: ", fallback);
 				}
 
-				// If we find it in the rootCache, this definition exists in the root
-				// and we don't have to check the fallback sources
-				if (
-					rootCache.has(lookup) &&
-					typeof rootCache.get(lookup) !== "undefined"
-				) {
-					return rootCache.get(lookup);
-				}
-
-				// If we haven't found this value yet, check the fallback sources
-				if (
-					sourcesCache.has(lookup) &&
-					typeof sourcesCache.get(lookup) !== "undefined"
-				) {
-					return sourcesCache.get(lookup);
-				}
-
-				// If we've made it this far, we haven't found a fallback value
-				decl.warn(result, `No fallback value found for ${lookup}`, {
-					node: decl,
-				});
+				console.log({ key, fallback });
+				return `var(${key}, ${fallback})`;
 			}
 
-			return {
-				RuleExit() {
-					// Clear the cache after each rule
-					ruleCache.clear();
-				},
-				/** @type import('postcss').Processors.Declaration */
-				Declaration(decl, { result }) {
-					// Check if this declaration is a custom property
-					const isProp = decl.prop.startsWith("--");
-					const isRoot =
-						decl.parent.selector === ":root" ||
-						decl.parent.selector === ":host";
+			console.log(parseVar(updatedValue));
 
-					// Add this declaration to the cache if it's a custom property
-					// in case a descendant declaration needs it
-					if (isProp) {
-						if (isRoot) rootCache.set(decl.prop, decl.value);
-						else ruleCache.set(decl.prop, decl.value);
-					}
-
-					// If this neither is a custom property nor uses a custom property, stop processing
-					if (customPropertiesOnly && !isProp) return;
-
-					/** @type import('postcss-value-parser').ValueParser */
-					const newValue = [];
-					// Walk the declaration value and look for var() functions
-					parse(decl.value).walkFuncs((node) => {
-						// We don't care if it's not a var function
-						if (!node.isVar) return;
-
-						// Filter out comments and punctuation
-						const filtered = node.nodes.filter(
-							(n) => n.type !== "comment" && n.type !== "punctuation"
-						);
-
-						// If there are more than 1 items left, a fallback is already defined
-						if (filtered.length > 1) return;
-
-						// Capture the first value as our lookup value
-						const lookup = filtered[0].value;
-
-						// If the first value isn't a word or doesn't start with --, it's not a custom property
-						if (filtered[0].type !== "word" || !lookup.startsWith("--")) {
-							decl.warn(
-								result,
-								`The first value in the var function is not a custom property.`,
-								{
-									node: decl,
-								}
-							);
-							return;
-						}
-
-						// Go fetch the fallback value
-						const fallbackValue = getFallback(lookup);
-						if (!fallbackValue) return;
-
-						console.log(`Found fallback value for ${lookup}: ${fallbackValue}`);
-						newValue.push(`var(${lookup}, ${fallbackValue})`);
-					});
-
-					// Update the declaration value
-					if (newValue.length) decl.assign({ value: newValue.join(" ") });
-				},
-			};
+			// Note this isn't working yet for multiple var() functions in the same value
+			decl.assign({ value: parseVar(updatedValue) });
 		},
 	};
 };
 
-module.exports.postcss = true;
+export const postcss = true;
